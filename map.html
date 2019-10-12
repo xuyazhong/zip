@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+  <meta charset="utf-8">
+  <title>地块详情</title>
+  <style>
+    #map {
+      height: 90%;
+      width: 100%;
+    }
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    .gmnoprint {
+      display: none;
+    }
+  </style>
+  <script>
+    var map;
+    var drawingManager;
+    var selectedShape;
+    var marker = null;
+    var bermudaTriangle;
+    var hasCoords= false;
+    // 标记完成
+    function overlaycomplete(e) {
+      if(e.type == google.maps.drawing.OverlayType.POLYGON) {
+        drawingManager.setDrawingMode(null);
+        var newShape = e.overlay;
+        newShape.type = e.type;
+        google.maps.event.addListener(newShape, 'click', function () {
+            setSelection(newShape);
+        });
+        google.maps.event.addListener(newShape.getPath(), 'insert_at', function () {
+            // actionArea()
+        });
+        setSelection(newShape);
+      }
+    }
+
+    // 保存图层
+    function setSelection(shape) {
+      selectedShape = shape;
+      shape.setEditable(true);
+      // actionArea()
+    }
+    // 保存
+    window.actionSave = function actionSave () {
+      if (hasCoords) {
+        const len = bermudaTriangle.getPath().getLength();
+        const polyArrayLatLng = [];
+        for (let i = 0; i < len; i++) {
+          const vertex = bermudaTriangle.getPath().getAt(i);
+          const vertexLatLng = { lat: vertex.lat(), lng: vertex.lng() };
+          polyArrayLatLng.push(vertexLatLng);
+        }
+        return polyArrayLatLng
+      }
+      var array = selectedShape.getPath().getArray();
+      let json = array.map((item) => {
+        return {"lat": item.lat(), "lng": item.lng()}
+      })
+      return json
+    }
+    // 重置
+    window.mapReset = function mapReset () {
+      if (hasCoords) {
+        bermudaTriangle.setMap(null)
+        hasCoords = false
+      }
+      if (selectedShape) {
+        selectedShape.setMap(null)
+      }
+      var polyOptions = {
+        editable: true,
+        strokeColor: "#FF0000",
+        suppressUndo: true
+      };
+      drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.POLYGON,
+        drawingControl: false,
+        drawingControlOptions: {
+          drawingModes: [
+            google.maps.drawing.OverlayType.POLYGON
+          ]
+        },
+        markerOptions: {
+          draggable: true
+        },
+        rectangleOptions: polyOptions,
+        circleOptions: polyOptions,
+        polygonOptions: polyOptions,
+        map: map
+      });
+      drawingManager.addListener('overlaycomplete', overlaycomplete);//添加编辑事件监听
+    }
+    window.initMap = function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 16,
+        center: {lat: 39.97966417, lng: 116.30970350},
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+        clickableIcons: false
+      });
+      mapReset()
+    }
+    //根据以知点绘制图形
+    window.drawingPolygon = function drawingPolygon(triangleCoords) {
+      drawingManager.setDrawingMode(null);
+      drawingManager.setOptions({
+        drawingControl: false
+      });
+      bermudaTriangle = new google.maps.Polygon({
+        paths: triangleCoords,
+        suppressUndo: true,
+        strokeColor: '#FF0000',
+        editable: true
+      })
+      hasCoords = true
+      bermudaTriangle.setPath(triangleCoords)
+      bermudaTriangle.setMap(map)
+      google.maps.event.addListener(bermudaTriangle.getPath(), 'set_at', function() {
+        // actionArea()
+      });
+      google.maps.event.addListener(bermudaTriangle.getPath(), 'insert_at', function() {
+        // actionArea()
+      });
+      // actionArea()
+    }
+    // 更新中心点
+    window.mapCenter = function mapCenter (data) {
+      let result = data.split(",")
+      let lat = result[0]
+      let lng = result[1]
+      var center = new google.maps.LatLng(parseFloat(lng), parseFloat(lat));
+      map.panTo(center);
+    }
+    window.onload = function () {
+      //相互通信只能传递字符串类型
+      window.addEventListener('message', function(e) {//注册事件 接收数据
+        alert("e =>" + e);
+      })
+      document.getElementById('reset').addEventListener('click', function () {
+        alert("reset")
+        window.mapReset();
+      })
+
+      document.getElementById('btn').addEventListener('click', function() {
+        let params = {
+          msg:'h5 to rn',
+          source:'H5',
+        };
+        window.ReactNativeWebView.postMessage(JSON.stringify(params));//发送消息到rn
+      })
+    }
+  </script>
+  <script async defer src="http://maps.google.cn/maps/api/js?v=3.exp&libraries=geometry,drawing&key=AIzaSyACz5IqkrTWahG1QhEAekAOys1YyWyY-aU&language=zh-CN&callback=initMap"></script>
+</head>
+<body>
+  <div id="map"></div>
+  <button id="btn">保存</button>
+  <button id="reset">重置</button>
+</body>
+</html>

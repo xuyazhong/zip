@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
@@ -6,7 +5,7 @@
   <title>地块详情</title>
   <style>
     #map {
-      height: 90%;
+      height: 100%;
       width: 100%;
     }
     html,
@@ -36,17 +35,59 @@
             setSelection(newShape);
         });
         google.maps.event.addListener(newShape.getPath(), 'insert_at', function () {
-            // actionArea()
+            actionArea()
         });
         setSelection(newShape);
       }
     }
-
+    // 计算面积
+    function actionArea () {
+      var path;
+      if (hasCoords) {
+        path = bermudaTriangle.getPath().getArray()
+      } else {
+        path = selectedShape.getPath()
+      }
+      var area = parseFloat(google.maps.geometry.spherical.computeArea(path)).toFixed(2);
+      var unitArea = (area/666.67).toFixed(2)
+      var length = parseFloat(google.maps.geometry.spherical.computeLength(path)).toFixed(2);
+      let dict = {'area': area, 'unitArea': unitArea, 'length': length}
+      if (window.calcArea) {
+        window.calcArea(JSON.stringify(dict))
+      }
+    }
     // 保存图层
     function setSelection(shape) {
       selectedShape = shape;
       shape.setEditable(true);
-      // actionArea()
+      actionArea()
+    }
+    // 更新坐标
+    window.updateLocation = function updateLocation (data) {
+      var newPoint = new google.maps.LatLng(parseFloat(data.lat), parseFloat(data.lng))
+      var icon = {
+        url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABHNCSVQICAgIfAhkiAAAAF96VFh0UmF3IHByb2ZpbGUgdHlwZSBBUFAxAABo3uNKT81LLcpMVigoyk/LzEnlUgADYxMuE0sTS6NEAwMDCwMIMDQwMDYEkkZAtjlUKNEABZgamFmaGZsZmgMxiM8FAEi2FMnxHlGkAAADqElEQVRo3t1aTWgTQRQOiuDPQfHs38GDogc1BwVtQxM9xIMexIN4EWw9iAehuQdq0zb+IYhglFovClXQU+uhIuqh3hQll3iwpyjG38Zkt5uffc4XnHaSbpLZ3dnEZOBB2H3z3jeZN+9vx+fzYPgTtCoQpdVHrtA6EH7jme+/HFFawQBu6BnWNwdGjB2BWH5P32jeb0V4B54KL5uDuW3D7Y/S2uCwvrUR4GaEuZABWS0FHhhd2O4UdN3FMJneLoRtN7Y+GMvvUw2eE2RDh3LTOnCd1vQN5XZ5BXwZMV3QqQT84TFa3zuU39sy8P8IOqHb3T8fpY1emoyMSQGDI/Bwc+0ELy6i4nLtepp2mE0jc5L3UAhMsdxut0rPJfRDN2eMY1enF8Inbmj7XbtZhunkI1rZFD/cmFMlr1PFi1/nzSdGkT5RzcAzvAOPU/kVF9s0ujqw+9mP5QgDmCbJAV7McXIeGpqS3Qg7OVs4lTfMD1Yg9QLR518mZbImFcvWC8FcyLAbsev++3YETb0tn2XAvouAvjGwd14YdCahUTCWW6QQIzzDO/CIAzKm3pf77ei23AUkVbICHr8pnDZNynMQJfYPT7wyKBzPVQG3IvCAtyTsCmRBprQpMawWnkc+q2Rbn+TK/+gmRR7qTYHXEuZkdVM0p6SdLLYqX0LItnFgBxe3v0R04b5mGzwnzIUMPiBbFkdVmhGIa5tkJ4reZvyl4Rg8p3tMBh+FEqUduVRUSTKTnieL58UDG76cc70AyMgIBxs6pMyIYV5agKT9f/ltTnJFOIhuwXOCLD6gQ/oc8AJcdtuYb09xRQN3NWULgCwhfqSk3SkaBZViRTK3EYNUSBF4Hic0Y8mM+if0HhlMlaIHbQ8Z5lszxnGuIP2zrAw8J8jkA7pkMAG79AKuPTOOcgWZeVP5AsSDjAxWegGyJoSUWAj/FBpRa0JiviSbfldMqOMPcce7UVeBLK4gkMVVBLI2phLjKlIJm8lcxMNkLuIomXOTTmc1kwYf2E+nMQdzlaTTKgoaZJWyBQ141RY0DkrK6XflAQbih1geZnhJeXu5WeEZ3mVqSkrIgCzXJaXqoh65TUuLerdtFXgQ2bYKeD1pq6hobLE86SlztXMWvaA5vPO0sYWB9p2K1iJS4ra0Fju/udsN7fWu+MDRFZ+YuuIjX1d8Zu2OD92WC9G3ub1qABktBV7vssfBMX1L7yVjZ7PLHuABb9svezS7boNDyK/b4LdX123+Au+jOmNxrkG0AAAAAElFTkSuQmCC",
+        scaledSize: new google.maps.Size(20, 20), // scaled size
+        origin: new google.maps.Point(0,0), // origin
+        anchor: new google.maps.Point(0, 0) // anchor
+      }
+      if (marker) {
+        marker.setPosition(newPoint);
+      } else {
+        marker = new google.maps.Marker({
+          position: newPoint,
+          map: map,
+          icon: icon
+        });
+      }
+    }
+    // 更新中心点
+    window.mapCenter = function mapCenter (data) {
+      let result = data.split(",")
+      let lat = result[0]
+      let lng = result[1]
+      var center = new google.maps.LatLng(parseFloat(lng), parseFloat(lat));
+      map.panTo(center);
     }
     // 保存
     window.actionSave = function actionSave () {
@@ -77,7 +118,6 @@
       }
       var polyOptions = {
         editable: true,
-        strokeColor: "#FF0000",
         suppressUndo: true
       };
       drawingManager = new google.maps.drawing.DrawingManager({
@@ -107,61 +147,98 @@
       });
       mapReset()
     }
+    window.androidsave = function () {
+      let json = window.actionSave()
+      let arr = JSON.stringify(json)
+      window.android.jssave(arr)
+    }
+    window.androidDraw = function (json) {
+      actionDrawlinearRing(json)
+    }
+    window.actionDrawlinearRing = function (data) {
+      if (Object.keys(data).length === 0) {
+          return
+        }
+        let arrays = JSON.parse(data)
+        var triangleCoords = []
+        arrays.map((item) => {
+          let dict = {lat: parseFloat(item.latitude), lng: parseFloat(item.longitude)}
+          triangleCoords.push(dict)
+        })
+        window.drawingPolygon(triangleCoords)
+    }
     //根据以知点绘制图形
     window.drawingPolygon = function drawingPolygon(triangleCoords) {
       drawingManager.setDrawingMode(null);
-      drawingManager.setOptions({
-        drawingControl: false
+      drawingManager.setOptions({ 
+        drawingControl: false 
       });
       bermudaTriangle = new google.maps.Polygon({
         paths: triangleCoords,
         suppressUndo: true,
-        strokeColor: '#FF0000',
         editable: true
       })
       hasCoords = true
       bermudaTriangle.setPath(triangleCoords)
       bermudaTriangle.setMap(map)
       google.maps.event.addListener(bermudaTriangle.getPath(), 'set_at', function() {
-        // actionArea()
+        actionArea()
       });
       google.maps.event.addListener(bermudaTriangle.getPath(), 'insert_at', function() {
-        // actionArea()
+        actionArea()
       });
-      // actionArea()
+      actionArea()
     }
-    // 更新中心点
-    window.mapCenter = function mapCenter (data) {
-      let result = data.split(",")
-      let lat = result[0]
-      let lng = result[1]
-      var center = new google.maps.LatLng(parseFloat(lng), parseFloat(lat));
-      map.panTo(center);
+  </script>
+  <script>
+    window.onerror = function (err) {
+      console.log('window.onerror: ' + err)
     }
-    window.onload = function () {
-      //相互通信只能传递字符串类型
-      window.addEventListener('message', function(e) {//注册事件 接收数据
-        alert("e =>" + e);
-      })
-      document.getElementById('reset').addEventListener('click', function () {
-        alert("reset")
-        window.mapReset();
-      })
-
-      document.getElementById('btn').addEventListener('click', function() {
-        let params = {
-          msg:'h5 to rn',
-          source:'H5',
-        };
-        window.ReactNativeWebView.postMessage(JSON.stringify(params));//发送消息到rn
-      })
+    function setupWebViewJavascriptBridge(callback) {
+      if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+      if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+      window.WVJBCallbacks = [callback];
+      var WVJBIframe = document.createElement('iframe');
+      WVJBIframe.style.display = 'none';
+      WVJBIframe.src = 'https://__bridge_loaded__';
+      document.documentElement.appendChild(WVJBIframe);
+      setTimeout(function () { document.documentElement.removeChild(WVJBIframe) }, 0)
     }
+    setupWebViewJavascriptBridge(function (bridge) {
+      // 已有坐标重绘
+      bridge.registerHandler('actionDraw', function (data, responseCallback) {
+        window.actionDrawlinearRing(data)
+        responseCallback('responseData')
+      })
+      // 更新坐标
+      bridge.registerHandler('actionLocation', function (data, responseCallback) {
+        window.updateLocation(data)
+      })
+      // 重置图层
+      bridge.registerHandler('actionReset', function (data, responseCallback) {
+        window.mapReset()
+        responseCallback('responseData')
+      })
+      // 更新地图中心点
+      bridge.registerHandler('actionMapCenter', function (data, responseCallback) {
+        window.mapCenter(data)
+        responseCallback('responseData')
+      })
+      // 保存经纬度
+      bridge.registerHandler('actionSave', function (data, responseCallback) {
+        let json = window.actionSave()
+        let arr = JSON.stringify(json)
+        responseCallback(arr)
+      })
+      window.calcArea = function calcArea(data) {
+        bridge.callHandler('actionArea', data, function(response) {
+        })
+      }
+    })
   </script>
   <script async defer src="http://maps.google.cn/maps/api/js?v=3.exp&libraries=geometry,drawing&key=AIzaSyACz5IqkrTWahG1QhEAekAOys1YyWyY-aU&language=zh-CN&callback=initMap"></script>
 </head>
 <body>
   <div id="map"></div>
-  <button id="btn">保存</button>
-  <button id="reset">重置</button>
 </body>
 </html>
